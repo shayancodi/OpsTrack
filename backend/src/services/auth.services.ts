@@ -40,3 +40,55 @@ export async function registerUser(input: RegisterInput) {
 
   return user
 }
+import jwt from "jsonwebtoken"
+
+type LoginInput = {
+  email: string
+  password: string
+}
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error("JWT_SECRET is not set")
+  }
+  return secret
+}
+
+export async function loginUser(input: LoginInput) {
+  const { email, password } = input
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  // Same message whether email missing or password wrong (security)
+  if (!user) {
+    const error = new Error("Invalid email or password")
+    ;(error as Error & { statusCode?: number }).statusCode = 401
+    throw error
+  }
+
+  const ok = await bcrypt.compare(password, user.passwordHash)
+  if (!ok) {
+    const error = new Error("Invalid email or password")
+    ;(error as Error & { statusCode?: number }).statusCode = 401
+    throw error
+  }
+
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    getJwtSecret(),
+    { expiresIn: "7d" }
+  )
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  }
+}
