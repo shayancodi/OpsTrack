@@ -14,15 +14,17 @@ enum Role {
 }
 
 model User {
-  id              String   @id @default(uuid())
+  id              String          @id @default(uuid())
   name            String
-  email           String   @unique
+  email           String          @unique
   passwordHash    String
-  role            Role     @default(EMPLOYEE)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  ticketsCreated  Ticket[] @relation("TicketCreator")
-  ticketsAssigned Ticket[] @relation("TicketAssignee")
+  role            Role            @default(EMPLOYEE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  ticketsCreated  Ticket[]        @relation("TicketCreator")
+  ticketsAssigned Ticket[]        @relation("TicketAssignee")
+  comments        Comment[]
+  ticketHistory   TicketHistory[]
 }
 
 enum TicketStatus {
@@ -62,6 +64,32 @@ model Ticket {
   assigneeId String?
   assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id])
 
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  comments  Comment[]
+  history   TicketHistory[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  body      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+}
+
+model TicketHistory {
+  id        String   @id @default(uuid())
+  message   String
+  createdAt DateTime @default(now())
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  changedById String
+  changedBy   User   @relation(fields: [changedById], references: [id])
 }
